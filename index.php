@@ -338,7 +338,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     </div>
     <div class="aurora" aria-hidden="true"></div>
     <div class="app-shell">
-        <header class="hero-card">
+        <header class="hero-card" data-section="hero">
             <div class="hero-id">
                 <div class="avatar"><?php echo strtoupper(substr($selectedPlayer['nickname'] ?? $clan['tag'], 0, 2)); ?></div>
                 <div>
@@ -419,7 +419,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
             </main>
         <?php elseif ($selectedPlayer): ?>
         <main class="dashboard">
-            <section class="grid">
+            <section class="grid" data-section="garage">
                 <article class="card tank-card">
                     <div class="card-header">
                         <p class="label">Garage overview</p>
@@ -471,7 +471,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                 </article>
             </section>
             
-            <section class="grid">
+            <section class="grid" data-section="metrics">
                 <article class="card">
                     <div class="card-header">
                         <p class="label">Clan readiness</p>
@@ -490,7 +490,13 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                         <p class="label">Performance arc</p>
                         <button class="ghost" id="sparkline-boost" type="button">Boost</button>
                     </div>
-                    <canvas id="performanceChart" width="320" height="160" aria-label="Performance chart"></canvas>
+                    <canvas
+                        id="performanceChart"
+                        width="320"
+                        height="160"
+                        aria-label="Performance chart"
+                        data-performance='<?php echo json_encode($performance, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>'
+                    ></canvas>
                     <ul class="chart-legend">
                         <?php foreach ($performanceLabels as $index => $label): ?>
                             <li><span style="--color: <?php echo $performanceColors[$index % count($performanceColors)]; ?>"></span><?php echo htmlspecialchars($label); ?></li>
@@ -518,7 +524,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                 </article>
             </section>
 
-            <section class="card table-card">
+            <section class="card table-card" data-section="roster">
                 <div class="card-header">
                     <div>
                         <p class="label">Clan roster</p>
@@ -580,12 +586,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     </div>
 
     <?php if ($selectedPlayer): ?>
-    <script>
-        window.APP_DATA = {
-            performance: <?php echo json_encode($performance); ?>
-        };
-    </script>
-    <script src="assets/js/app.js?v=13" defer></script>
+    <script src="assets/js/app.js?v=14" defer></script>
     <?php endif; ?>
 </body>
 </html>
