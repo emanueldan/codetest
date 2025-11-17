@@ -2,45 +2,73 @@ const state = {
   filter: 'all',
   query: '',
   boosted: false,
+  basePerformance: [],
+  performance: [],
+  filterInitialized: false,
 };
 
-const table = document.getElementById('rosterTable');
-const rosterBody = table ? table.querySelector('tbody') : null;
-const searchInput = document.getElementById('rosterSearch');
-const filterButtons = document.querySelectorAll('[data-filter]');
-const boostButton = document.getElementById('sparkline-boost');
-const chartCanvas = document.getElementById('performanceChart');
-const heroForm = document.querySelector('.hero-form');
-const loadingOverlay = document.getElementById('loadingOverlay');
-const rosterRows = document.querySelectorAll('.roster-row');
-const idleEvents = ['click']; /*'click', 'mousemove', 'keydown', 'scroll', 'touchstart'*/
+const SECTION_SELECTORS = [
+  '[data-section="hero"]',
+  '[data-section="garage"]',
+  '[data-section="metrics"]',
+  '[data-section="roster"]',
+];
+const REFRESH_INTERVAL = 60 * 1000;
+const idleEvents = ['click'];
 const IDLE_RELOAD_DELAY = 5 * 60 * 1000;
+
 let idleTimer = null;
+let refreshTimer = null;
+let isRefreshingSections = false;
+
+const elements = {
+  table: null,
+  rosterBody: null,
+  searchInput: null,
+  filterButtons: null,
+  boostButton: null,
+  chartCanvas: null,
+  heroForm: null,
+  loadingOverlay: null,
+  rosterRows: null,
+};
+
+function cacheDom() {
+  elements.table = document.getElementById('rosterTable');
+  elements.rosterBody = elements.table ? elements.table.querySelector('tbody') : null;
+  elements.searchInput = document.getElementById('rosterSearch');
+  elements.filterButtons = document.querySelectorAll('[data-filter]');
+  elements.boostButton = document.getElementById('sparkline-boost');
+  elements.chartCanvas = document.getElementById('performanceChart');
+  elements.heroForm = document.querySelector('.hero-form');
+  elements.loadingOverlay = document.getElementById('loadingOverlay');
+  elements.rosterRows = document.querySelectorAll('.roster-row');
+}
 
 function ensurePlayerField() {
-  if (!heroForm) return null;
+  if (!elements.heroForm) return null;
   let field = document.getElementById('player');
   if (!field) {
     field = document.createElement('input');
     field.type = 'hidden';
     field.name = 'player';
     field.id = 'player_fallback';
-    heroForm.appendChild(field);
+    elements.heroForm.appendChild(field);
   }
   return field;
 }
 
 const loading = {
   show() {
-    if (loadingOverlay) {
-      loadingOverlay.classList.add('is-active');
+    if (elements.loadingOverlay) {
+      elements.loadingOverlay.classList.add('is-active');
     }
   },
 };
 
 function applyFilters() {
-  if (!table) return;
-  const rows = table.querySelectorAll('tbody tr');
+  if (!elements.table) return;
+  const rows = elements.table.querySelectorAll('tbody tr');
   const q = state.query.toLowerCase();
 
   rows.forEach((row) => {
@@ -50,33 +78,95 @@ function applyFilters() {
   });
 }
 
-filterButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    filterButtons.forEach((btn) => btn.classList.remove('active'));
-    button.classList.add('active');
-    state.filter = button.dataset.filter;
-    applyFilters();
-  });
-});
+function syncFilterUI() {
+  if (!elements.filterButtons || !elements.filterButtons.length) {
+    return;
+  }
+  const buttons = Array.from(elements.filterButtons);
+  if (!state.filterInitialized) {
+    const active = buttons.find((button) => button.classList.contains('active'));
+    if (active) {
+      state.filter = active.dataset.filter || 'all';
+    }
+    state.filterInitialized = true;
+  }
 
-if (searchInput) {
-  searchInput.addEventListener('input', (event) => {
+  const hasMatch = buttons.some((button) => button.dataset.filter === state.filter);
+  if (!hasMatch) {
+    state.filter = 'all';
+  }
+
+  buttons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.filter === state.filter);
+  });
+
+  if (elements.searchInput) {
+    elements.searchInput.value = state.query;
+  }
+}
+
+function bindFilterButtons() {
+  if (!elements.filterButtons) return;
+  elements.filterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      state.filter = button.dataset.filter || 'all';
+      syncFilterUI();
+      applyFilters();
+    });
+  });
+}
+
+function bindSearchInput() {
+  if (!elements.searchInput) return;
+  elements.searchInput.value = state.query;
+  elements.searchInput.addEventListener('input', (event) => {
     state.query = event.target.value;
     applyFilters();
   });
 }
 
+function getPerformanceDataFromCanvas(canvas) {
+  if (!canvas) return null;
+  const { performance } = canvas.dataset;
+  if (!performance) return null;
+  try {
+    const parsed = JSON.parse(performance);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (error) {
+    console.error('Unable to parse performance data', error);
+    return null;
+  }
+}
+
+function boostData(data, boosted) {
+  return data.map((value, index) => {
+    const multiplier = boosted && index % 2 === 0 ? 1.05 : 1;
+    return Math.round(value * multiplier);
+  });
+}
+
+function updatePerformanceState() {
+  const base = getPerformanceDataFromCanvas(elements.chartCanvas);
+  if (!base || !base.length) {
+    state.basePerformance = [];
+    state.performance = [];
+    return;
+  }
+  state.basePerformance = base;
+  state.performance = boostData(base, state.boosted);
+}
+
 function renderChart() {
-  if (!chartCanvas || !window.APP_DATA) return;
-  const ctx = chartCanvas.getContext('2d');
-  const data = [...window.APP_DATA.performance];
+  if (!elements.chartCanvas || !state.performance.length) return;
+  const ctx = elements.chartCanvas.getContext('2d');
+  const data = [...state.performance];
   const padding = 24;
-  const width = chartCanvas.width - padding * 2;
-  const height = chartCanvas.height - padding * 2;
+  const width = elements.chartCanvas.width - padding * 2;
+  const height = elements.chartCanvas.height - padding * 2;
   const maxVal = Math.max(...data);
   const minVal = Math.min(...data);
 
-  ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+  ctx.clearRect(0, 0, elements.chartCanvas.width, elements.chartCanvas.height);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
@@ -98,7 +188,7 @@ function renderChart() {
 
   ctx.beginPath();
   data.forEach((value, index) => {
-    const x = padding + (width / (data.length - 1)) * index;
+    const x = padding + (width / (data.length - 1 || 1)) * index;
     const normalized = (value - minVal) / (maxVal - minVal || 1);
     const y = padding + height - normalized * height;
     if (index === 0) {
@@ -115,29 +205,29 @@ function renderChart() {
   ctx.fill();
 }
 
-if (boostButton) {
-  boostButton.addEventListener('click', () => {
+function bindBoostButton() {
+  if (!elements.boostButton) return;
+  elements.boostButton.classList.toggle('active', state.boosted);
+  elements.boostButton.addEventListener('click', () => {
     state.boosted = !state.boosted;
-    boostButton.classList.toggle('active', state.boosted);
-    const multiplier = state.boosted ? 1.05 : 1;
-    window.APP_DATA.performance = window.APP_DATA.performance.map((value, index) =>
-      Math.round(value * (index % 2 === 0 ? multiplier : 1))
-    );
+    elements.boostButton.classList.toggle('active', state.boosted);
+    state.performance = boostData(state.basePerformance, state.boosted);
     renderChart();
   });
 }
 
-renderChart();
-applyFilters();
-
-if (heroForm) {
-  heroForm.addEventListener('submit', () => {
+function bindHeroForm() {
+  if (!elements.heroForm) return;
+  elements.heroForm.addEventListener('submit', () => {
     loading.show();
   });
 }
 
-if (rosterRows.length) {
-  rosterRows.forEach((row) => {
+function bindRosterRowClicks() {
+  if (!elements.rosterRows || !elements.rosterRows.length || !elements.heroForm) {
+    return;
+  }
+  elements.rosterRows.forEach((row) => {
     row.addEventListener('click', () => {
       const targetField = ensurePlayerField();
       if (!targetField) return;
@@ -147,17 +237,27 @@ if (rosterRows.length) {
       }
 
       targetField.value = accountId;
-
-      rosterRows.forEach((peer) => peer.classList.remove('is-selected'));
+      elements.rosterRows.forEach((peer) => peer.classList.remove('is-selected'));
       row.classList.add('is-selected');
 
-      if (typeof heroForm.requestSubmit === 'function') {
-        heroForm.requestSubmit();
+      if (typeof elements.heroForm.requestSubmit === 'function') {
+        elements.heroForm.requestSubmit();
       } else {
-        heroForm.submit();
+        elements.heroForm.submit();
       }
     });
   });
+}
+
+function initializeBindings() {
+  bindHeroForm();
+  bindRosterRowClicks();
+  bindFilterButtons();
+  bindSearchInput();
+  syncFilterUI();
+  bindBoostButton();
+  renderChart();
+  applyFilters();
 }
 
 function scheduleIdleReload() {
@@ -169,12 +269,83 @@ function scheduleIdleReload() {
       scheduleIdleReload();
       return;
     }
-    window.location.reload();
+    refreshSections();
   }, IDLE_RELOAD_DELAY);
 }
 
-idleEvents.forEach((eventName) => {
-  window.addEventListener(eventName, scheduleIdleReload, { passive: true });
-});
+function attachIdleListeners() {
+  idleEvents.forEach((eventName) => {
+    window.addEventListener(eventName, scheduleIdleReload, { passive: true });
+  });
+}
 
-scheduleIdleReload();
+async function refreshSections() {
+  if (isRefreshingSections) return;
+  const hasSections = SECTION_SELECTORS.some((selector) => document.querySelector(selector));
+  if (!hasSections) return;
+
+  isRefreshingSections = true;
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('_ts', Date.now().toString());
+    const response = await fetch(url.toString(), {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    let updated = false;
+
+    SECTION_SELECTORS.forEach((selector) => {
+      const fresh = doc.querySelector(selector);
+      const current = document.querySelector(selector);
+      if (fresh && current) {
+        current.replaceWith(fresh);
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      cacheDom();
+      updatePerformanceState();
+      initializeBindings();
+      scheduleIdleReload();
+    }
+  } catch (error) {
+    console.error('Unable to refresh dashboard', error);
+  } finally {
+    isRefreshingSections = false;
+  }
+}
+
+function startAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
+  const hasSections = SECTION_SELECTORS.some((selector) => document.querySelector(selector));
+  if (!hasSections) return;
+  refreshTimer = setInterval(() => {
+    if (!document.hidden) {
+      refreshSections();
+    }
+  }, REFRESH_INTERVAL);
+}
+
+function bootstrap() {
+  cacheDom();
+  updatePerformanceState();
+  initializeBindings();
+  attachIdleListeners();
+  scheduleIdleReload();
+  startAutoRefresh();
+}
+
+bootstrap();
