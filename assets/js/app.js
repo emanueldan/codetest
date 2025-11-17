@@ -5,6 +5,7 @@ const state = {
 };
 
 const table = document.getElementById('rosterTable');
+const rosterBody = table ? table.querySelector('tbody') : null;
 const searchInput = document.getElementById('rosterSearch');
 const filterButtons = document.querySelectorAll('[data-filter]');
 const boostButton = document.getElementById('sparkline-boost');
