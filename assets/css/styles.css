@@ -334,7 +334,6 @@ h2, h3 {
 
 .roster-row:hover {
     background: rgba(255, 255, 255, 0.04);
-    background: rgba(255, 255, 255, 0.03);
     transform: translateX(4px);
 }
 
