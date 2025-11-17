@@ -5,10 +5,13 @@ const state = {
 };
 
 const table = document.getElementById('rosterTable');
+const rosterBody = table ? table.querySelector('tbody') : null;
 const searchInput = document.getElementById('rosterSearch');
 const filterButtons = document.querySelectorAll('[data-filter]');
 const boostButton = document.getElementById('sparkline-boost');
 const chartCanvas = document.getElementById('performanceChart');
+const playerSelect = document.getElementById('player');
+const heroForm = playerSelect ? playerSelect.form : null;
 
 function applyFilters() {
   if (!table) return;
@@ -101,3 +104,24 @@ if (boostButton) {
 
 renderChart();
 applyFilters();
+
+if (rosterBody && playerSelect && heroForm) {
+  rosterBody.addEventListener('click', (event) => {
+    const row = event.target.closest('tr[data-account-id]');
+    if (!row || !rosterBody.contains(row)) return;
+    const accountId = row.dataset.accountId;
+    if (!accountId) return;
+
+    playerSelect.value = accountId;
+
+    rosterBody.querySelectorAll('.roster-row').forEach((r) => {
+      r.classList.toggle('is-selected', r === row);
+    });
+
+    if (typeof heroForm.requestSubmit === 'function') {
+      heroForm.requestSubmit();
+    } else {
+      heroForm.submit();
+    }
+  });
+}
