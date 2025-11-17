@@ -326,7 +326,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=11" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=12" />
 </head>
 <body>
     <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
@@ -585,7 +585,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
             performance: <?php echo json_encode($performance); ?>
         };
     </script>
-    <script src="assets/js/app.js?v=3" defer></script>
+    <script src="assets/js/app.js?v=5" defer></script>
     <?php endif; ?>
 </body>
 </html>

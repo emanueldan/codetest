@@ -10,9 +10,25 @@ const searchInput = document.getElementById('rosterSearch');
 const filterButtons = document.querySelectorAll('[data-filter]');
 const boostButton = document.getElementById('sparkline-boost');
 const chartCanvas = document.getElementById('performanceChart');
-const playerSelect = document.getElementById('player');
-const heroForm = playerSelect ? playerSelect.form : null;
+const heroForm = document.querySelector('.hero-form');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const rosterRows = document.querySelectorAll('.roster-row');
+const idleEvents = ['click', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+const IDLE_RELOAD_DELAY = 60 * 1000;
+let idleTimer = null;
+
+function ensurePlayerField() {
+  if (!heroForm) return null;
+  let field = document.getElementById('player');
+  if (!field) {
+    field = document.createElement('input');
+    field.type = 'hidden';
+    field.name = 'player';
+    field.id = 'player_fallback';
+    heroForm.appendChild(field);
+  }
+  return field;
+}
 
 const loading = {
   show() {
@@ -120,23 +136,45 @@ if (heroForm) {
   });
 }
 
-if (rosterBody && playerSelect && heroForm) {
-  rosterBody.addEventListener('click', (event) => {
-    const row = event.target.closest('tr[data-account-id]');
-    if (!row || !rosterBody.contains(row)) return;
-    const accountId = row.dataset.accountId;
-    if (!accountId) return;
+if (rosterRows.length) {
+  rosterRows.forEach((row) => {
+    row.addEventListener('click', () => {
+      const targetField = ensurePlayerField();
+      if (!targetField) return;
+      const accountId = row.dataset.accountId;
+      if (!accountId || targetField.value === accountId) {
+        return;
+      }
 
-    playerSelect.value = accountId;
+      targetField.value = accountId;
 
-    rosterBody.querySelectorAll('.roster-row').forEach((r) => {
-      r.classList.toggle('is-selected', r === row);
+      rosterRows.forEach((peer) => peer.classList.remove('is-selected'));
+      row.classList.add('is-selected');
+
+      if (typeof heroForm.requestSubmit === 'function') {
+        heroForm.requestSubmit();
+      } else {
+        heroForm.submit();
+      }
     });
-
-    if (typeof heroForm.requestSubmit === 'function') {
-      heroForm.requestSubmit();
-    } else {
-      heroForm.submit();
-    }
   });
 }
+
+function scheduleIdleReload() {
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+  }
+  idleTimer = setTimeout(() => {
+    if (document.hidden) {
+      scheduleIdleReload();
+      return;
+    }
+    window.location.reload();
+  }, IDLE_RELOAD_DELAY);
+}
+
+idleEvents.forEach((eventName) => {
+  window.addEventListener(eventName, scheduleIdleReload, { passive: true });
+});
+
+scheduleIdleReload();
