@@ -134,6 +134,7 @@ body {
 .tank-column h4,
 .tank-column .tank-info {
     text-align: left;
+    word-break: break-word;
 }
 .tank-grid {
     display: flex;
