@@ -1,10 +1,9 @@
 <?php
 declare(strict_types=1);
 
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
-$isJsonRequest = isset($_GET['format']) && $_GET['format'] === 'json';
 
 $realmMap = [
     'eu' => 'eu',
@@ -16,8 +15,8 @@ $realmMap = [
 $realmParam = strtolower($_GET['realm'] ?? 'eu');
 $realm = $realmMap[$realmParam] ?? $realmMap['eu'];
 $realmKey = array_key_exists($realmParam, $realmMap) ? $realmParam : 'eu';
-$clanId = preg_replace('/\D/', '', $_GET['clan_id'] ?? '') ?: '500154932';
-$appId = getenv('WOT_APP_ID') ?: '36cd920f1aea79b6222ccc15c6d27fb4';
+$clanId = preg_replace('/\D/', '', $_GET['clan_id'] ?? '') ?: '';
+$appId = getenv('WOT_APP_ID') ?: '';
 $selectedPlayerId = isset($_GET['player']) ? (int) $_GET['player'] : null;
 $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
 $apiBase = sprintf('https://api.worldoftanks.%s', $realm);
@@ -317,135 +316,6 @@ try {
 $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     ? $selectedPlayer['joinedAt']->diff($now)->days
     : 0;
-
-$dashboardPayload = null;
-if ($selectedPlayer && !$error) {
-    $timelinePayload = array_map(static function (array $member): array {
-        return [
-            'nickname' => $member['nickname'],
-            'joinedLabel' => $member['joinedLabel'],
-            'roleLabel' => $member['roleLabel'],
-            'battles' => $member['battles'],
-            'color' => $member['color'],
-        ];
-    }, $timelineMembers);
-
-    $rosterPayload = array_map(static function (array $member): array {
-        return [
-            'accountId' => $member['accountId'],
-            'nickname' => $member['nickname'],
-            'roleKey' => $member['roleKey'],
-            'roleLabel' => $member['roleLabel'],
-            'color' => $member['color'],
-            'joinedLabel' => $member['joinedLabel'],
-            'battles' => $member['battles'],
-            'wins' => $member['wins'],
-            'winRate' => round($member['winRate'] * 100, 2),
-            'avgXp' => $member['avgXp'],
-            'lastBattleLabel' => $member['lastBattleLabel'],
-            'globalRating' => $member['globalRating'],
-        ];
-    }, $roster);
-
-    $tankTiersPayload = [];
-    foreach ($playerTanksByTier as $tier => $tanks) {
-        $tankTiersPayload[] = [
-            'tier' => $tier,
-            'tanks' => array_map(static function (array $tank): array {
-                return [
-                    'name' => $tank['name'],
-                    'image' => $tank['image'],
-                    'battles' => $tank['battles'],
-                    'winRate' => round($tank['winRate'] * 100, 1),
-                    'status' => $tank['status'],
-                    'mark' => $tank['mark'],
-                ];
-            }, $tanks),
-        ];
-    }
-
-    $roleFilterPayload = [];
-    foreach ($roleFilters as $key => $label) {
-        $roleFilterPayload[] = [
-            'key' => $key,
-            'label' => $label,
-        ];
-    }
-
-    $playerOptions = array_map(static function (array $member): array {
-        return [
-            'value' => $member['accountId'],
-            'label' => $member['nickname'],
-        ];
-    }, $roster);
-
-    $dashboardPayload = [
-        'meta' => [
-            'updatedLabel' => $now->format('Y-m-d H:i') . ' UTC',
-            'realmLabel' => strtoupper($realmKey),
-        ],
-        'clan' => [
-            'name' => $clan['name'],
-            'tag' => $clan['tag'],
-            'leader' => $clan['leader'],
-            'members' => $clan['members_count'],
-            'created' => $clan['created'],
-        ],
-        'player' => [
-            'accountId' => $selectedPlayer['accountId'],
-            'nickname' => $selectedPlayer['nickname'],
-            'roleLabel' => $selectedPlayer['roleLabel'],
-            'roleKey' => $selectedPlayer['roleKey'],
-            'globalRating' => $selectedPlayer['globalRating'],
-            'winRate' => round($selectedPlayer['winRate'] * 100, 2),
-            'battles' => $selectedPlayer['battles'],
-            'joinedLabel' => $selectedPlayer['joinedLabel'],
-            'serviceDays' => $selectedPlayerServiceDays,
-            'lastBattleLabel' => $selectedPlayer['lastBattleLabel'],
-            'initials' => strtoupper(substr($selectedPlayer['nickname'], 0, 2)),
-        ],
-        'readiness' => [
-            'averageWinRate' => round($averageWinRate, 2),
-            'activeMembers' => $activeMembers,
-            'memberCount' => count($roster),
-            'totalBattles' => $totalBattles,
-        ],
-        'performance' => [
-            'values' => $performance,
-            'labels' => $performanceLabels,
-            'colors' => $performanceColors,
-        ],
-        'timeline' => $timelinePayload,
-        'tanks' => [
-            'tiers' => $tankTiersPayload,
-            'error' => $tankLoadError,
-        ],
-        'roster' => [
-            'members' => $rosterPayload,
-            'roleFilters' => $roleFilterPayload,
-        ],
-        'selectors' => [
-            'players' => $playerOptions,
-            'clanId' => $clanId,
-            'realm' => $realmKey,
-            'playerId' => $selectedPlayer['accountId'],
-        ],
-    ];
-}
-
-if ($isJsonRequest) {
-    header('Content-Type: application/json');
-    if ($error || !$dashboardPayload) {
-        echo json_encode([
-            'error' => $error ?: 'Commander data unavailable.',
-        ]);
-    } else {
-        echo json_encode([
-            'data' => $dashboardPayload,
-        ]);
-    }
-    exit;
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -456,7 +326,7 @@ if ($isJsonRequest) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=1" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=14" />
 </head>
 <body>
     <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
