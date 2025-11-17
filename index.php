@@ -326,7 +326,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=12" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=14" />
 </head>
 <body>
     <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
@@ -340,11 +340,11 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     <div class="app-shell">
         <header class="hero-card">
             <div class="hero-id">
-                <div class="avatar"><?php echo strtoupper(substr($selectedPlayer['nickname'] ?? $clan['tag'], 0, 2)); ?></div>
+                <div class="avatar" id="heroAvatar"><?php echo strtoupper(substr($selectedPlayer['nickname'] ?? $clan['tag'], 0, 2)); ?></div>
                 <div>
-                    <p class="eyebrow">World of Tanks &middot; <?php echo strtoupper($realmKey); ?> realm</p>
-                    <h1><?php echo htmlspecialchars($selectedPlayer['nickname'] ?? $clan['name']); ?></h1>
-                    <p class="muted">
+                    <p class="eyebrow" id="heroEyebrow">World of Tanks &middot; <?php echo strtoupper($realmKey); ?> realm</p>
+                    <h1 id="heroName"><?php echo htmlspecialchars($selectedPlayer['nickname'] ?? $clan['name']); ?></h1>
+                    <p class="muted" id="heroSubtitle">
                         <?php if ($selectedPlayer): ?>
                             <?php echo htmlspecialchars($selectedPlayer['roleLabel']); ?> · <?php echo htmlspecialchars($clan['tag']); ?> / <?php echo htmlspecialchars($clan['name']); ?>
                         <?php else: ?>
@@ -355,7 +355,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
             </div>
 
             <?php if ($selectedPlayer): ?>
-            <div class="hero-metrics">
+            <div class="hero-metrics" id="heroMetrics">
                 <article>
                     <p class="label">Global rating</p>
                     <h2><?php echo number_format($selectedPlayer['globalRating']); ?></h2>
@@ -374,7 +374,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
             </div>
             <?php endif; ?>
 
-            <div class="hero-tags">
+            <div class="hero-tags" id="heroTags">
                 <span class="chip">Clan · <?php echo htmlspecialchars($clan['tag']); ?></span>
                 <span class="chip">Leader · <?php echo htmlspecialchars($clan['leader'] ?? 'Unknown'); ?></span>
                 <span class="chip">Members · <?php echo $clan['members_count']; ?></span>
@@ -420,90 +420,38 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
         <?php elseif ($selectedPlayer): ?>
         <main class="dashboard">
             <section class="grid">
-                <article class="card tank-card">
-                    <div class="card-header">
-                        <p class="label">Garage overview</p>
-                        <span class="badge neutral">Favorite hulls</span>
-                    </div>
-                    <?php if ($tankLoadError): ?>
-                        <p class="muted"><?php echo htmlspecialchars($tankLoadError); ?></p>
-                    <?php elseif (!$playerTanksByTier): ?>
-                        <p class="muted">Tank dossier unavailable for this player.</p>
-                    <?php else: ?>
-                    <div class="tank-grid">
-                        <?php foreach ($playerTanksByTier as $tier => $tanks): ?>
-                            <div class="tank-column">
-                                <h4>Tier <?php echo $tier; ?> tanks</h4>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Config tank</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($tanks as $tank): ?>
-                                            <tr>
-                                                <td>
-                                                    <div class="tank-info">
-                                                        <?php if ($tank['image']): ?>
-                                                            <img src="<?php echo htmlspecialchars($tank['image']); ?>" alt="<?php echo htmlspecialchars($tank['name']); ?>" loading="lazy" />
-                                                        <?php endif; ?>
-                                                        <div>
-                                                            <strong><?php echo htmlspecialchars($tank['name']); ?></strong>
-                                                            <p class="muted small"><?php echo number_format($tank['battles']); ?> battles · <?php echo number_format($tank['winRate'] * 100, 1); ?>% WR</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="status-chip <?php echo $tank['status'] ? 'online' : 'offline'; ?>" title="<?php echo $tank['status'] ? 'Win rate above 50%' : 'Win rate below 50%'; ?>">
-                                                        <?php echo $tank['status'] ? '✔' : '✕'; ?>
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                </article>
-            </section>
-            
-            <section class="grid">
-                <article class="card">
+                <article class="card" data-section="readiness" id="readinessCard">
                     <div class="card-header">
                         <p class="label">Clan readiness</p>
-                        <span class="badge positive"><?php echo $activeMembers; ?> active this week</span>
+                        <span class="badge positive" id="readinessActive"><?php echo $activeMembers; ?> active this week</span>
                     </div>
-                    <h3><?php echo number_format($averageWinRate, 2); ?>%</h3>
-                    <p class="muted">Average win rate across <?php echo count($roster); ?> members.</p>
+                    <h3 id="readinessWinRate"><?php echo number_format($averageWinRate, 2); ?>%</h3>
+                    <p class="muted" id="readinessDescription">Average win rate across <?php echo count($roster); ?> members.</p>
                     <div class="progress" role="img" aria-label="Average win rate <?php echo number_format($averageWinRate, 2); ?> percent">
-                        <span style="width: <?php echo min(100, max(0, $averageWinRate)); ?>%"></span>
+                        <span id="readinessProgress" style="width: <?php echo min(100, max(0, $averageWinRate)); ?>%"></span>
                     </div>
-                    <p class="muted small">Total battles <?php echo number_format($totalBattles); ?></p>
+                    <p class="muted small" id="readinessBattles">Total battles <?php echo number_format($totalBattles); ?></p>
                 </article>
 
-                <article class="card performance-card">
+                <article class="card performance-card" data-section="performance">
                     <div class="card-header">
                         <p class="label">Performance arc</p>
                         <button class="ghost" id="sparkline-boost" type="button">Boost</button>
                     </div>
                     <canvas id="performanceChart" width="320" height="160" aria-label="Performance chart"></canvas>
-                    <ul class="chart-legend">
+                    <ul class="chart-legend" id="performanceLegend">
                         <?php foreach ($performanceLabels as $index => $label): ?>
                             <li><span style="--color: <?php echo $performanceColors[$index % count($performanceColors)]; ?>"></span><?php echo htmlspecialchars($label); ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </article>
 
-                <article class="card">
+                <article class="card" data-section="timeline">
                     <div class="card-header">
                         <p class="label">Service timeline</p>
                         <span class="badge neutral">UTC synced</span>
                     </div>
-                    <ul class="timeline">
+                    <ul class="timeline" id="timelineList">
                         <?php foreach ($timelineMembers as $member): ?>
                             <li>
                                 <div class="timeline-point" style="--color: <?php echo $member['color']; ?>"></div>
@@ -516,9 +464,61 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                         <?php endforeach; ?>
                     </ul>
                 </article>
+
+                <article class="card tank-card" data-section="tanks">
+                    <div class="card-header">
+                        <p class="label">Garage overview</p>
+                        <span class="badge neutral">Favorite hulls</span>
+                    </div>
+                    <div id="tankBody">
+                        <?php if ($tankLoadError): ?>
+                            <p class="muted"><?php echo htmlspecialchars($tankLoadError); ?></p>
+                        <?php elseif (!$playerTanksByTier): ?>
+                            <p class="muted">Tank dossier unavailable for this player.</p>
+                        <?php else: ?>
+                        <div class="tank-grid">
+                            <?php foreach ($playerTanksByTier as $tier => $tanks): ?>
+                                <div class="tank-column">
+                                    <h4>Tier <?php echo $tier; ?> tanks</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Config tank</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($tanks as $tank): ?>
+                                                <tr>
+                                                    <td>
+                                                        <div class="tank-info">
+                                                            <?php if ($tank['image']): ?>
+                                                                <img src="<?php echo htmlspecialchars($tank['image']); ?>" alt="<?php echo htmlspecialchars($tank['name']); ?>" loading="lazy" />
+                                                            <?php endif; ?>
+                                                            <div>
+                                                                <strong><?php echo htmlspecialchars($tank['name']); ?></strong>
+                                                                <p class="muted small"><?php echo number_format($tank['battles']); ?> battles · <?php echo number_format($tank['winRate'] * 100, 1); ?>% WR</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="status-chip <?php echo $tank['status'] ? 'online' : 'offline'; ?>" title="<?php echo $tank['status'] ? 'Win rate above 50%' : 'Win rate below 50%'; ?>">
+                                                            <?php echo $tank['status'] ? '✔' : '✕'; ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </article>
             </section>
 
-            <section class="card table-card">
+            <section class="card table-card" data-section="roster">
                 <div class="card-header">
                     <div>
                         <p class="label">Clan roster</p>
@@ -579,13 +579,11 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
         <?php endif; ?>
     </div>
 
-    <?php if ($selectedPlayer): ?>
+    <?php if ($selectedPlayer && $dashboardPayload): ?>
     <script>
-        window.APP_DATA = {
-            performance: <?php echo json_encode($performance); ?>
-        };
+        window.APP_DATA = <?php echo json_encode($dashboardPayload); ?>;
     </script>
-    <script src="assets/js/app.js?v=5" defer></script>
+    <script src="assets/js/app.js" defer></script>
     <?php endif; ?>
 </body>
 </html>
