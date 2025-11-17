@@ -13,6 +13,20 @@ let idleTimer = null;
 let lastQuery = new URLSearchParams(window.location.search);
 
 const numberFormatter = new Intl.NumberFormat('en-US');
+};
+
+const table = document.getElementById('rosterTable');
+const rosterBody = table ? table.querySelector('tbody') : null;
+const searchInput = document.getElementById('rosterSearch');
+const filterButtons = document.querySelectorAll('[data-filter]');
+const boostButton = document.getElementById('sparkline-boost');
+const chartCanvas = document.getElementById('performanceChart');
+const heroForm = document.querySelector('.hero-form');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const rosterRows = document.querySelectorAll('.roster-row');
+const idleEvents = ['click']; /*'click', 'mousemove', 'keydown', 'scroll', 'touchstart'*/
+const IDLE_RELOAD_DELAY = 60 * 1000;
+let idleTimer = null;
 
 function ensurePlayerField() {
   if (!heroForm) return null;
@@ -65,6 +79,9 @@ function getRosterTable() {
 
 function applyFilters() {
   const table = getRosterTable();
+};
+
+function applyFilters() {
   if (!table) return;
   const rows = table.querySelectorAll('tbody tr');
   const q = state.query.toLowerCase();
@@ -145,6 +162,32 @@ function renderChart() {
   const data = getPerformanceValues();
   if (!chartCanvas || !data.length) return;
   const ctx = chartCanvas.getContext('2d');
+    const matchType = state.filter === 'all' || row.dataset.role === state.filter;
+    const matchText = row.innerText.toLowerCase().includes(q);
+    row.style.display = matchType && matchText ? '' : 'none';
+  });
+}
+
+filterButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    filterButtons.forEach((btn) => btn.classList.remove('active'));
+    button.classList.add('active');
+    state.filter = button.dataset.filter;
+    applyFilters();
+  });
+});
+
+if (searchInput) {
+  searchInput.addEventListener('input', (event) => {
+    state.query = event.target.value;
+    applyFilters();
+  });
+}
+
+function renderChart() {
+  if (!chartCanvas || !window.APP_DATA) return;
+  const ctx = chartCanvas.getContext('2d');
+  const data = [...window.APP_DATA.performance];
   const padding = 24;
   const width = chartCanvas.width - padding * 2;
   const height = chartCanvas.height - padding * 2;
@@ -155,7 +198,7 @@ function renderChart() {
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
-  for (let i = 0; i <= 4; i += 1) {
+  for (let i = 0; i <= 4; i++) {
     const y = padding + (height / 4) * i;
     ctx.beginPath();
     ctx.moveTo(padding, y);
@@ -522,6 +565,52 @@ function updateDashboard(data) {
 
 function scheduleIdleReload() {
   if (!heroForm) return;
+if (boostButton) {
+  boostButton.addEventListener('click', () => {
+    state.boosted = !state.boosted;
+    boostButton.classList.toggle('active', state.boosted);
+    const multiplier = state.boosted ? 1.05 : 1;
+    window.APP_DATA.performance = window.APP_DATA.performance.map((value, index) =>
+      Math.round(value * (index % 2 === 0 ? multiplier : 1))
+    );
+    renderChart();
+  });
+}
+
+renderChart();
+applyFilters();
+
+if (heroForm) {
+  heroForm.addEventListener('submit', () => {
+    loading.show();
+  });
+}
+
+if (rosterRows.length) {
+  rosterRows.forEach((row) => {
+    row.addEventListener('click', () => {
+      const targetField = ensurePlayerField();
+      if (!targetField) return;
+      const accountId = row.dataset.accountId;
+      if (!accountId || targetField.value === accountId) {
+        return;
+      }
+
+      targetField.value = accountId;
+
+      rosterRows.forEach((peer) => peer.classList.remove('is-selected'));
+      row.classList.add('is-selected');
+
+      if (typeof heroForm.requestSubmit === 'function') {
+        heroForm.requestSubmit();
+      } else {
+        heroForm.submit();
+      }
+    });
+  });
+}
+
+function scheduleIdleReload() {
   if (idleTimer) {
     clearTimeout(idleTimer);
   }
