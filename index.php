@@ -4,6 +4,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
+const FILE_VER = 18;
 
 $realmMap = [
     'eu' => 'eu',
@@ -326,7 +327,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=16" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=<?=FILE_VER?>" />
 </head>
 <body>
     <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
@@ -586,7 +587,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     </div>
 
     <?php if ($selectedPlayer): ?>
-    <script src="assets/js/app.js?v=14" defer></script>
+    <script src="assets/js/app.js?v=<?=FILE_VER?>" defer></script>
     <?php endif; ?>
 </body>
 </html>
