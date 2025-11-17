@@ -13,7 +13,7 @@ const chartCanvas = document.getElementById('performanceChart');
 const heroForm = document.querySelector('.hero-form');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const rosterRows = document.querySelectorAll('.roster-row');
-const idleEvents = ['click', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+const idleEvents = ['click']; /*'click', 'mousemove', 'keydown', 'scroll', 'touchstart'*/
 const IDLE_RELOAD_DELAY = 60 * 1000;
 let idleTimer = null;
 
