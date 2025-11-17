@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 $realmMap = [
     'eu' => 'eu',
     'na' => 'com',
@@ -11,8 +15,8 @@ $realmMap = [
 $realmParam = strtolower($_GET['realm'] ?? 'eu');
 $realm = $realmMap[$realmParam] ?? $realmMap['eu'];
 $realmKey = array_key_exists($realmParam, $realmMap) ? $realmParam : 'eu';
-$clanId = preg_replace('/\D/', '', $_GET['clan_id'] ?? '') ?: '500171981';
-$appId = getenv('WOT_APP_ID') ?: 'demo';
+$clanId = preg_replace('/\D/', '', $_GET['clan_id'] ?? '') ?: '500154932';
+$appId = getenv('WOT_APP_ID') ?: '';
 $selectedPlayerId = isset($_GET['player']) ? (int) $_GET['player'] : null;
 $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
 $apiBase = sprintf('https://api.worldoftanks.%s', $realm);
@@ -59,6 +63,8 @@ $averageWinRate = 0;
 $totalBattles = 0;
 $activeMembers = 0;
 $performance = [];
+$playerTanksByTier = [];
+$tankLoadError = null;
 $performanceLabels = ['Win rate %', 'Average XP', 'Survival %', 'Battles percentile', 'Victories percentile'];
 $performanceColors = ['#34d399', '#f472b6', '#60a5fa', '#f97316', '#c084fc'];
 $selectedPlayer = null;
@@ -229,6 +235,80 @@ try {
         return $aTime <=> $bTime;
     });
     $timelineMembers = array_slice($timelineMembers, 0, 6);
+
+    if ($selectedPlayerId) {
+        try {
+            $tankStatsResponse = fetchApi($apiBase . '/wot/tanks/stats/', [
+                'application_id' => $appId,
+                'account_id' => $selectedPlayerId,
+                'fields' => 'tank_id,mark_of_mastery,all.battles,all.wins',
+            ]);
+
+            if (($tankStatsResponse['status'] ?? 'error') !== 'ok') {
+                throw new RuntimeException('Unable to load tank stats: ' . ($tankStatsResponse['error']['message'] ?? 'Unknown error'));
+            }
+
+            $playerTankStats = $tankStatsResponse['data'][$selectedPlayerId] ?? [];
+            $tankIds = array_column($playerTankStats, 'tank_id');
+            $tankDetails = [];
+
+            foreach (array_chunk($tankIds, 50) as $tankChunk) {
+                if (!$tankChunk) {
+                    continue;
+                }
+
+                $vehiclesResponse = fetchApi($apiBase . '/wot/encyclopedia/vehicles/', [
+                    'application_id' => $appId,
+                    'tank_id' => implode(',', $tankChunk),
+                    'fields' => 'tank_id,name,tier,type,images.contour_icon',
+                ]);
+
+                if (($vehiclesResponse['status'] ?? 'error') !== 'ok') {
+                    throw new RuntimeException('Unable to load tank encyclopedia: ' . ($vehiclesResponse['error']['message'] ?? 'Unknown error'));
+                }
+
+                $tankDetails += $vehiclesResponse['data'];
+            }
+
+            foreach ($playerTankStats as $tankStat) {
+                $tankId = $tankStat['tank_id'] ?? null;
+                if (!$tankId || !isset($tankDetails[$tankId])) {
+                    continue;
+                }
+
+                $details = $tankDetails[$tankId];
+                $tier = (int) ($details['tier'] ?? 0);
+                if ($tier === 0) {
+                    continue;
+                }
+
+                $battles = (int) ($tankStat['all']['battles'] ?? 0);
+                $wins = (int) ($tankStat['all']['wins'] ?? 0);
+                $winRate = $battles > 0 ? $wins / $battles : 0;
+                $playerTanksByTier[$tier][] = [
+                    'name' => $details['name'] ?? 'Unknown tank',
+                    'image' => $details['images']['contour_icon'] ?? null,
+                    'type' => $details['type'] ?? 'unknown',
+                    'battles' => $battles,
+                    'winRate' => $winRate,
+                    'mark' => (int) ($tankStat['mark_of_mastery'] ?? 0),
+                    'status' => $winRate >= 0.5,
+                ];
+            }
+
+            foreach ($playerTanksByTier as &$tierTanks) {
+                usort($tierTanks, static function ($a, $b) {
+                    return $b['battles'] <=> $a['battles'];
+                });
+                $tierTanks = array_slice($tierTanks, 0, 10);
+            }
+            unset($tierTanks);
+
+            ksort($playerTanksByTier);
+        } catch (Throwable $tankException) {
+            $tankLoadError = $tankException->getMessage();
+        }
+    }
 } catch (Throwable $exception) {
     $error = $exception->getMessage();
 }
@@ -246,7 +326,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=1" />
 </head>
 <body>
     <div class="aurora" aria-hidden="true"></div>
@@ -376,6 +456,56 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                             </li>
                         <?php endforeach; ?>
                     </ul>
+                </article>
+
+                <article class="card tank-card">
+                    <div class="card-header">
+                        <p class="label">Garage overview</p>
+                        <span class="badge neutral">Favorite hulls</span>
+                    </div>
+                    <?php if ($tankLoadError): ?>
+                        <p class="muted"><?php echo htmlspecialchars($tankLoadError); ?></p>
+                    <?php elseif (!$playerTanksByTier): ?>
+                        <p class="muted">Tank dossier unavailable for this player.</p>
+                    <?php else: ?>
+                    <div class="tank-grid">
+                        <?php foreach ($playerTanksByTier as $tier => $tanks): ?>
+                            <div class="tank-column">
+                                <h4>Tier <?php echo $tier; ?> tanks</h4>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Config tank</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($tanks as $tank): ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="tank-info">
+                                                        <?php if ($tank['image']): ?>
+                                                            <img src="<?php echo htmlspecialchars($tank['image']); ?>" alt="<?php echo htmlspecialchars($tank['name']); ?>" loading="lazy" />
+                                                        <?php endif; ?>
+                                                        <div>
+                                                            <strong><?php echo htmlspecialchars($tank['name']); ?></strong>
+                                                            <p class="muted small"><?php echo number_format($tank['battles']); ?> battles · <?php echo number_format($tank['winRate'] * 100, 1); ?>% WR</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="status-chip <?php echo $tank['status'] ? 'online' : 'offline'; ?>" title="<?php echo $tank['status'] ? 'Win rate above 50%' : 'Win rate below 50%'; ?>">
+                                                        <?php echo $tank['status'] ? '✔' : '✕'; ?>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
                 </article>
             </section>
 
