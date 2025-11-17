@@ -326,7 +326,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=8" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=10" />
 </head>
 <body>
     <div class="aurora" aria-hidden="true"></div>
@@ -546,7 +546,12 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                         </thead>
                         <tbody>
                             <?php foreach ($roster as $member): ?>
-                                <tr data-role="<?php echo htmlspecialchars($member['roleKey']); ?>">
+                                <?php $isSelectedRow = $selectedPlayer && $member['accountId'] === $selectedPlayer['accountId']; ?>
+                                <tr
+                                    class="roster-row<?php echo $isSelectedRow ? ' is-selected' : ''; ?>"
+                                    data-role="<?php echo htmlspecialchars($member['roleKey']); ?>"
+                                    data-account-id="<?php echo $member['accountId']; ?>"
+                                >
                                     <td>
                                         <strong><?php echo htmlspecialchars($member['nickname']); ?></strong>
                                         <p class="muted small"><?php echo htmlspecialchars($member['joinedLabel']); ?> · Rating <?php echo number_format($member['globalRating']); ?></p>
