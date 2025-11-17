@@ -317,6 +317,7 @@ h2, h3 {
 
 .table-wrapper {
     padding-top: 0;
+    overflow-x: auto;
 }
 
 .table-wrapper table {
@@ -548,5 +549,62 @@ td {
 
     th, td {
         font-size: 0.9rem;
+    }
+
+    #rosterTable,
+    #rosterTable thead,
+    #rosterTable tbody,
+    #rosterTable th,
+    #rosterTable td,
+    #rosterTable tr {
+        display: block;
+    }
+
+    #rosterTable thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        border: 0;
+        padding: 0;
+        clip: rect(0 0 0 0);
+        overflow: hidden;
+    }
+
+    #rosterTable tbody tr {
+        border: 1px solid var(--card-border);
+        border-radius: 18px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    #rosterTable td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        text-align: right;
+        gap: 1rem;
+        padding: 0.4rem 0;
+        border: none;
+    }
+
+    #rosterTable td::before {
+        content: attr(data-label);
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 0.65rem;
+        color: var(--text-muted);
+    }
+
+    #rosterTable td:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        gap: 0.2rem;
+    }
+
+    #rosterTable td:first-child::before {
+        margin-bottom: 0.35rem;
     }
 }

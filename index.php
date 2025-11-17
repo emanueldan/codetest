@@ -565,16 +565,16 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                                     data-role="<?php echo htmlspecialchars($member['roleKey']); ?>"
                                     data-account-id="<?php echo $member['accountId']; ?>"
                                 >
-                                    <td>
+                                    <td data-label="Player">
                                         <strong><?php echo htmlspecialchars($member['nickname']); ?></strong>
                                         <p class="muted small"><?php echo htmlspecialchars($member['joinedLabel']); ?> · Rating <?php echo number_format($member['globalRating']); ?></p>
                                     </td>
-                                    <td><span class="pill" style="--color: <?php echo $member['color']; ?>"><?php echo htmlspecialchars($member['roleLabel']); ?></span></td>
-                                    <td><?php echo number_format($member['battles']); ?></td>
-                                    <td><?php echo number_format($member['wins']); ?></td>
-                                    <td><?php echo number_format($member['winRate'] * 100, 2); ?>%</td>
-                                    <td><?php echo number_format($member['avgXp']); ?></td>
-                                    <td><?php echo htmlspecialchars($member['lastBattleLabel']); ?></td>
+                                    <td data-label="Role"><span class="pill" style="--color: <?php echo $member['color']; ?>"><?php echo htmlspecialchars($member['roleLabel']); ?></span></td>
+                                    <td data-label="Battles"><?php echo number_format($member['battles']); ?></td>
+                                    <td data-label="Wins"><?php echo number_format($member['wins']); ?></td>
+                                    <td data-label="Win rate"><?php echo number_format($member['winRate'] * 100, 2); ?>%</td>
+                                    <td data-label="Avg XP"><?php echo number_format($member['avgXp']); ?></td>
+                                    <td data-label="Last battle"><?php echo htmlspecialchars($member['lastBattleLabel']); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
