@@ -333,6 +333,7 @@ h2, h3 {
 }
 
 .roster-row:hover {
+    background: rgba(255, 255, 255, 0.04);
     background: rgba(255, 255, 255, 0.03);
     transform: translateX(4px);
 }
@@ -468,6 +469,7 @@ td {
     background: rgba(248, 113, 113, 0.12);
     color: #f87171;
 }
+
 .loading-overlay {
     position: fixed;
     inset: 0;
