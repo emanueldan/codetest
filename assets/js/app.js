@@ -12,6 +12,15 @@ const boostButton = document.getElementById('sparkline-boost');
 const chartCanvas = document.getElementById('performanceChart');
 const playerSelect = document.getElementById('player');
 const heroForm = playerSelect ? playerSelect.form : null;
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+const loading = {
+  show() {
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('is-active');
+    }
+  },
+};
 
 function applyFilters() {
   if (!table) return;
@@ -104,6 +113,12 @@ if (boostButton) {
 
 renderChart();
 applyFilters();
+
+if (heroForm) {
+  heroForm.addEventListener('submit', () => {
+    loading.show();
+  });
+}
 
 if (rosterBody && playerSelect && heroForm) {
   rosterBody.addEventListener('click', (event) => {
