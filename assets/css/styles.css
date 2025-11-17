@@ -131,7 +131,23 @@ body {
     flex-direction: column;
     gap: 1.75rem;
 }
+.tank-column h4,
+.tank-column .tank-info {
+    text-align: left;
+}
+.tank-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+}
 
+.tank-column {
+    text-align: center;
+    padding: 20px;
+    border-radius: 6px;
+    border: 1px solid #2c3a4a;
+}
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

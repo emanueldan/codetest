@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
 
 $realmMap = [
@@ -16,7 +16,7 @@ $realmParam = strtolower($_GET['realm'] ?? 'eu');
 $realm = $realmMap[$realmParam] ?? $realmMap['eu'];
 $realmKey = array_key_exists($realmParam, $realmMap) ? $realmParam : 'eu';
 $clanId = preg_replace('/\D/', '', $_GET['clan_id'] ?? '') ?: '500154932';
-$appId = getenv('WOT_APP_ID') ?: '36cd920f1aea79b6222ccc15c6d27fb4';
+$appId = getenv('WOT_APP_ID') ?: '';
 $selectedPlayerId = isset($_GET['player']) ? (int) $_GET['player'] : null;
 $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
 $apiBase = sprintf('https://api.worldoftanks.%s', $realm);
@@ -326,7 +326,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=1" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=10" />
 </head>
 <body>
     <div class="aurora" aria-hidden="true"></div>
@@ -413,51 +413,6 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
         <?php elseif ($selectedPlayer): ?>
         <main class="dashboard">
             <section class="grid">
-                <article class="card">
-                    <div class="card-header">
-                        <p class="label">Clan readiness</p>
-                        <span class="badge positive"><?php echo $activeMembers; ?> active this week</span>
-                    </div>
-                    <h3><?php echo number_format($averageWinRate, 2); ?>%</h3>
-                    <p class="muted">Average win rate across <?php echo count($roster); ?> members.</p>
-                    <div class="progress" role="img" aria-label="Average win rate <?php echo number_format($averageWinRate, 2); ?> percent">
-                        <span style="width: <?php echo min(100, max(0, $averageWinRate)); ?>%"></span>
-                    </div>
-                    <p class="muted small">Total battles <?php echo number_format($totalBattles); ?></p>
-                </article>
-
-                <article class="card performance-card">
-                    <div class="card-header">
-                        <p class="label">Performance arc</p>
-                        <button class="ghost" id="sparkline-boost" type="button">Boost</button>
-                    </div>
-                    <canvas id="performanceChart" width="320" height="160" aria-label="Performance chart"></canvas>
-                    <ul class="chart-legend">
-                        <?php foreach ($performanceLabels as $index => $label): ?>
-                            <li><span style="--color: <?php echo $performanceColors[$index % count($performanceColors)]; ?>"></span><?php echo htmlspecialchars($label); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </article>
-
-                <article class="card">
-                    <div class="card-header">
-                        <p class="label">Service timeline</p>
-                        <span class="badge neutral">UTC synced</span>
-                    </div>
-                    <ul class="timeline">
-                        <?php foreach ($timelineMembers as $member): ?>
-                            <li>
-                                <div class="timeline-point" style="--color: <?php echo $member['color']; ?>"></div>
-                                <div>
-                                    <strong><?php echo htmlspecialchars($member['nickname']); ?></strong>
-                                    <p class="muted small"><?php echo htmlspecialchars($member['joinedLabel']); ?> · <?php echo htmlspecialchars($member['roleLabel']); ?></p>
-                                </div>
-                                <span class="badge neutral"><?php echo number_format($member['battles']); ?> battles</span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </article>
-
                 <article class="card tank-card">
                     <div class="card-header">
                         <p class="label">Garage overview</p>
@@ -506,6 +461,53 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
+                </article>
+            </section>
+            
+            <section class="grid">
+                <article class="card">
+                    <div class="card-header">
+                        <p class="label">Clan readiness</p>
+                        <span class="badge positive"><?php echo $activeMembers; ?> active this week</span>
+                    </div>
+                    <h3><?php echo number_format($averageWinRate, 2); ?>%</h3>
+                    <p class="muted">Average win rate across <?php echo count($roster); ?> members.</p>
+                    <div class="progress" role="img" aria-label="Average win rate <?php echo number_format($averageWinRate, 2); ?> percent">
+                        <span style="width: <?php echo min(100, max(0, $averageWinRate)); ?>%"></span>
+                    </div>
+                    <p class="muted small">Total battles <?php echo number_format($totalBattles); ?></p>
+                </article>
+
+                <article class="card performance-card">
+                    <div class="card-header">
+                        <p class="label">Performance arc</p>
+                        <button class="ghost" id="sparkline-boost" type="button">Boost</button>
+                    </div>
+                    <canvas id="performanceChart" width="320" height="160" aria-label="Performance chart"></canvas>
+                    <ul class="chart-legend">
+                        <?php foreach ($performanceLabels as $index => $label): ?>
+                            <li><span style="--color: <?php echo $performanceColors[$index % count($performanceColors)]; ?>"></span><?php echo htmlspecialchars($label); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </article>
+
+                <article class="card">
+                    <div class="card-header">
+                        <p class="label">Service timeline</p>
+                        <span class="badge neutral">UTC synced</span>
+                    </div>
+                    <ul class="timeline">
+                        <?php foreach ($timelineMembers as $member): ?>
+                            <li>
+                                <div class="timeline-point" style="--color: <?php echo $member['color']; ?>"></div>
+                                <div>
+                                    <strong><?php echo htmlspecialchars($member['nickname']); ?></strong>
+                                    <p class="muted small"><?php echo htmlspecialchars($member['joinedLabel']); ?> · <?php echo htmlspecialchars($member['roleLabel']); ?></p>
+                                </div>
+                                <span class="badge neutral"><?php echo number_format($member['battles']); ?> battles</span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
                 </article>
             </section>
 
