@@ -23,3 +23,4 @@ and reset the working tree to match `origin/<branch>`.
 3. Serve the project through `php -S localhost:8000` or any web server that can execute
    PHP files.
 4. Load `index.php` and use the realm/clan/player selectors to explore live stats.
+5. Pick a "Stat scope" from the form to toggle which dataset (`statistics.random`, ranked seasons, global map, etc.) the dashboard should use for all battle metrics.
