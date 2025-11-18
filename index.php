@@ -4,7 +4,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
-const FILE_VER = 18;
+const FILE_VER = 19;
 
 $realmMap = [
     'eu' => 'eu',
@@ -47,6 +47,29 @@ $roleColors = [
     'private' => '#94a3b8',
     'reservist' => '#0ea5e9',
 ];
+
+$statScopes = [
+    'statistics.random' => 'Random battles (all time)',
+    'statistics.ranked_battles_current' => 'Ranked battles (current season)',
+    'statistics.ranked_battles_previous' => 'Ranked battles (previous season)',
+    'statistics.ranked_battles' => 'Ranked battles (overall)',
+    'statistics.ranked_15x15' => 'Ranked 15v15',
+    'statistics.ranked_10x10' => 'Ranked 10v10',
+    'statistics.ranked_season_3' => 'Ranked season 3',
+    'statistics.ranked_season_2' => 'Ranked season 2',
+    'statistics.ranked_season_1' => 'Ranked season 1',
+    'statistics.globalmap_champion' => 'Global map · Champion',
+    'statistics.globalmap_middle' => 'Global map · Middle',
+    'statistics.globalmap_absolute' => 'Global map · Absolute',
+    'statistics.epic' => 'Frontline (Epic)',
+    'statistics.fallout' => 'Fallout',
+];
+
+$statScopeKey = $_GET['stats_scope'] ?? 'statistics.random';
+if (!array_key_exists($statScopeKey, $statScopes)) {
+    $statScopeKey = 'statistics.random';
+}
+$statScopeLabel = $statScopes[$statScopeKey];
 
 $clan = [
     'name' => 'Clan data unavailable',
@@ -134,13 +157,21 @@ try {
 
     $accountIds = array_column($members, 'account_id');
     $accountData = [];
+    $statFieldSuffixes = ['battles', 'wins', 'losses', 'survived_battles', 'battle_avg_xp', 'damage_dealt'];
+    $statFieldSelections = array_map(static function (string $suffix) use ($statScopeKey): string {
+        return $statScopeKey . '.' . $suffix;
+    }, $statFieldSuffixes);
+    $accountFieldsParam = implode(',', array_merge(
+        ['account_id', 'nickname', 'global_rating', 'last_battle_time'],
+        $statFieldSelections
+    ));
 
     foreach (array_chunk($accountIds, 100) as $chunk) {
         $accountsResponse = fetchApi($apiBase . '/wot/account/info/', [
             'application_id' => $appId,
             'account_id' => implode(',', $chunk),
-            'extra' => 'statistics.random',
-            'fields' => 'account_id,nickname,global_rating,last_battle_time,statistics.random.battles,statistics.random.wins,statistics.random.losses,statistics.random.survived_battles,statistics.random.battle_avg_xp,statistics.random.damage_dealt',
+            'extra' => $statScopeKey,
+            'fields' => $accountFieldsParam,
         ]);
 
         if (($accountsResponse['status'] ?? 'error') !== 'ok') {
@@ -157,7 +188,18 @@ try {
         }
 
         $account = $accountData[$accountId];
-        $stats = $account['statistics']['random'] ?? [];
+        $statsPath = explode('.', $statScopeKey);
+        $stats = $account;
+        foreach ($statsPath as $segment) {
+            if (!is_array($stats) || !array_key_exists($segment, $stats)) {
+                $stats = [];
+                break;
+            }
+            $stats = $stats[$segment];
+        }
+        if (!is_array($stats)) {
+            $stats = [];
+        }
         $battles = (int) ($stats['battles'] ?? 0);
         $wins = (int) ($stats['wins'] ?? 0);
         $losses = (int) ($stats['losses'] ?? 0);
@@ -381,6 +423,7 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                 <span class="chip">Members · <?php echo $clan['members_count']; ?></span>
                 <span class="chip">Created · <?php echo htmlspecialchars($clan['created']); ?></span>
                 <span class="chip">Last update · <?php echo $now->format('Y-m-d H:i'); ?> UTC</span>
+                <span class="chip">Scope · <?php echo htmlspecialchars($statScopeLabel); ?></span>
             </div>
 
             <form class="hero-form" method="get">
@@ -393,6 +436,14 @@ $selectedPlayerServiceDays = $selectedPlayer && $selectedPlayer['joinedAt']
                     <select id="realm" name="realm">
                         <?php foreach ($realmMap as $key => $domain): ?>
                             <option value="<?php echo $key; ?>" <?php echo $key === $realmKey ? 'selected' : ''; ?>><?php echo strtoupper($key); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="hero-form-group">
+                    <label for="stats_scope">Stat scope</label>
+                    <select id="stats_scope" name="stats_scope">
+                        <?php foreach ($statScopes as $scopeKey => $scopeLabel): ?>
+                            <option value="<?php echo htmlspecialchars($scopeKey); ?>" <?php echo $scopeKey === $statScopeKey ? 'selected' : ''; ?>><?php echo htmlspecialchars($scopeLabel); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
